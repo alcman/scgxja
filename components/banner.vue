@@ -1,20 +1,19 @@
 <template>
-  <div>
-    <transition-group tag="ul" name="slide">
-      <li
-        v-for="(value,index) in list"
-        :key="index"
-        v-show="index===currentIndex"
-        @mouseenter="stop"
-        @mouseleave="go"
-      >
+  <div class="wrapper">
+    <ul
+      :style="{ transform: `translate3d(-${transX}, 0, 0)` }"
+      :class="{ animation: isAnimation }"
+      @mouseenter="stop"
+      @mouseleave="go"
+    >
+      <li v-for="value in imgList" :key="value.pic">
         <img class="imgs" :src="value.path" />
       </li>
-    </transition-group>
+    </ul>
     <div class="carousel-items">
       <span
-        v-for="(item,index) in list.length"
-        :class="{'active':index===currentIndex}"
+        v-for="(item, index) in list.length"
+        :class="{ active: index === carouselIndex }"
         :key="index"
         @mouseover="change(index)"
       ></span>
@@ -42,29 +41,45 @@ export default {
         }
       ],
       currentIndex: 0,
+      isAnimation: true,
       timer: ""
     };
   },
+  computed: {
+    imgList() {
+      if (this.list.length) {
+        return this.list.concat(this.list[0]);
+      }
+      return [];
+    },
+    transX() {
+      return `${parseInt(this.currentIndex) * 100}%`;
+    },
+    carouselIndex() {
+      if (this.currentIndex === this.list.length) return 0;
+      return this.currentIndex;
+    }
+  },
   methods: {
     autoPlay() {
-      setTimeout(() => {
-        this.currentIndex++;
-        if (this.currentIndex > this.list.length - 1) {
-          this.currentIndex = 0;
-        }
-      }, 2000);
-    },
-
-    // autoPlay() {
-    //   this.currentIndex++;
-    //   if (this.currentIndex > this.list.length - 1) {
-    //     this.currentIndex = 0;
-    //   }
-    // },
-    go() {
       this.timer = setInterval(() => {
-        this.autoPlay();
+        this.currentIndex++;
+        if (this.currentIndex >= this.list.length) {
+          setTimeout(() => {
+            // 取消动画效果
+            this.isAnimation = false;
+            // 无动画切换到第0张
+            this.currentIndex = 0;
+            // 打开动画效果，使用setTimeout防止动画立即生效
+            setTimeout(() => {
+              this.isAnimation = true;
+            }, 200);
+          }, 800);
+        }
       }, 4000);
+    },
+    go() {
+      this.autoPlay();
     },
     stop() {
       clearInterval(this.timer);
@@ -74,48 +89,34 @@ export default {
       this.currentIndex = index;
     }
   },
-  created() {
-    this.$nextTick(() => {
-      this.timer = setInterval(() => {
-        this.autoPlay();
-      }, 4000);
-    });
+  mounted() {
+    this.autoPlay();
   }
 };
 </script>
 
 <style lang="scss" scoped>
+.wrapper {
+  overflow: hidden;
+}
 .imgs {
   width: 1150px;
   height: 360px;
 }
 ul {
-  list-style: none;
   padding: 0;
+  font-size: 0;
   white-space: nowrap;
+  &.animation {
+    transition-duration: 0.35s;
+  }
   li {
     display: inline-block;
+    list-style: none;
     width: 100%;
     height: 100%;
     vertical-align: top;
   }
-}
-.slide-enter-to {
-  transition: all 1s ease;
-  transform: translateX(0);
-}
-
-.slide-leave-active {
-  transition: all 1s ease;
-  transform: translateX(-100%);
-}
-
-.slide-enter {
-  transform: translateX(100%);
-}
-
-.slide-leave {
-  transform: translateX(0);
 }
 .carousel-items {
   z-index: 10;
@@ -128,7 +129,7 @@ ul {
     display: inline-block;
     height: 10px;
     width: 10px;
-    border-radius:10px;
+    border-radius: 10px;
     margin: 0 3px;
     background-color: #b2b2b2;
     cursor: pointer;
